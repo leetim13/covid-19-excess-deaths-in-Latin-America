@@ -1,12 +1,7 @@
 # covid-19-excess-deaths-in-Latin-America
-Inspired from The Economist article on “Tracking covid-19 excess deaths across countries” (The Economist, 2021), this report aims to investigate the proportion of overall excess deaths vs the official reported death counts in the Latin America region due to the covid-19 pandemic using a Bayesian approach (R-INLA).
+Motivated by The Economist's analysis in “Tracking COVID-19 excess deaths across countries” (The Economist,2021), this study aims to explore the discrepancy between official death counts and overall excess deaths attributedto the COVID-19 pandemic, with a focus on four Latin American countries: Chile, Ecuador, Mexico, and Peru.These countries are hypothesized to exhibit underreported COVID-19 mortality due to factors like underreporting,misclassification, and healthcare system overload (Litewka and Heitman, 2020).
 
-The term “excess deaths” is defined as the “difference between the observed numbers of deaths in specific
-time periods and expected numbers of deaths in the same time periods” (CDC, 2022). This distinction is especially
-important in the context of the covid-19 pandemic as it is crucial to recognize that causes of deaths are hard to be
-attributed to specific factors since “some deaths due to covid-19 may be assigned to other causes of deaths, [hence]
-tracking all-cause mortality can provide information about whether an excess number of deaths is observed, even
-when COVID-19 mortality may be undercounted.” (CDC, 2022).
+The adoption of a Bayesian approach, utilizing the Integrated Nested Laplace Approximation (INLA) (Rue etal., 2009), was selected to address the limitations of linear models in The Economist's analysis.  This methodallows for a more flexible and nuanced analysis of mortality data, accommodating country-specific complexities anduncertainties. By applying Bayesian modeling, this study aims to deepen the understanding of COVID-19’s impactin Latin America and contribute to the global discussion on pandemic mortality reporting
 
 - `covid-19-excess-deaths.Rmd` - source code 
 - `covid-19-excess-deaths.pdf` - final report
