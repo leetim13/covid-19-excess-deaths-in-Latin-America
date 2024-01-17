@@ -1,6 +1,7 @@
 ---
-title: "A Bayesian Approach to Covid-19 Excess vs Official Deaths in the Latin America Region"
+title: "Evaluating Covid-19 Mortality in Latin America: A Bayesian Perspective on Excess vs Official Death Counts"
 author: "Timothy Lee"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
 geometry: "left=2cm,right=2cm,top=1cm,bottom=2cm"
 header-includes:
   - \usepackage{placeins}
@@ -20,35 +21,45 @@ knitr::knit_hooks$set(plot = function(x, options)  {
 ```{r}
 # importing libraries
 library(tidyverse)
-library(INLA)
+# install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+library(INLA) 
+# install.packages("Pmisc", repos="http://R-Forge.R-project.org")
 library(Pmisc)
 
-# if (!require("BiocManager", quietly = TRUE))
-#     install.packages("BiocManager")
-# 
+# install.packages("BiocManager")
 # BiocManager::install("Biobase")
+library("Biobase")
 ```
-## Introduction
 
-Inspired from The Economist article on "Tracking covid-19 excess deaths across countries" (The Economist, 2021), this report aims to investigate the proportion of overall excess deaths vs the official reported death counts due to the covid-19 pandemic. We will primarily focus on 4 Latin America countries (Chile, Ecuador, Mexico, and Peru) as a representation of the Latin America region, which have mostly "experienced a devastating first wave from April to July 2020" (The Economist, 2021). It is hypothesized that reported covid-19 deaths will be a much smaller proportion of overall excess deaths for Latin American countries due to various reasons including underreporting, misclassification, or having a higher number of total covid-19 cases in general (hospital overload). 
+## 1. Introduction
 
-## Definition of Terms
-First, we will define the term "excess deaths" as the "difference between the observed numbers of deaths in specific time periods and expected numbers of deaths in the same time periods" (CDC, 2022). This distinction is especially important in the context of the covid-19 pandemic as it is crucial to recognize that causes of deaths are hard to be attributed to specific factors since "some deaths due to covid-19 may be assigned to other causes of deaths, [hence] tracking all-cause mortality can provide information about whether an excess number of deaths is observed, even when COVID-19 mortality may be undercounted." (CDC, 2022). 
+Motivated by The Economist\'s analysis in "Tracking COVID-19 excess deaths across countries" (The Economist, 2021), this study aims to explore the discrepancy between official death counts and overall excess deaths attributed to the COVID-19 pandemic, with a focus on four Latin American countries: Chile, Ecuador, Mexico, and Peru. These countries are hypothesized to exhibit underreported COVID-19 mortality due to factors like underreporting, misclassification, and healthcare system overload (Litewka and Heitman, 2020).
 
-## Methodology and Modelling Assumptions
-Next, we will move on to our methodology of how to calculate excess deaths. For simplicity reason, we will assume the starting date of the covid-19 pandemic for all countries to be on March 1st, 2020 since the official date when the WHO made the assessment that covid-19 can be characterized as a pandemic is on March 11, 2020 (WHO, 2020). Hence for each country, a baseline model of total weekly mortatility counts will be fitted on all the pre-covid years and out-of-sample forecasts will be generated for the covid years (March 1st onwards). The rationale here is that seasonal patterns and the trend would be capture by this baseline model based on the pre-covid mortatility counts. Using this baseline model, we can then compare the excess deaths by subtracting the actual number of mortatility counts in the covid years with this historical baseline. This way, our model will include people who died from covid-19 but the cause of death wasn't correctly attributed to the official covid mortatiltiy numbers due to the reasons aforementioned. Finally, we will then compare this excess death against the official reported covid-19 deaths for each country.
+The adoption of a Bayesian approach, utilizing the Integrated Nested Laplace Approximation (INLA) (Rue et al., 2009), was selected to address the limitations of linear models in The Economist\'s analysis. This method allows for a more flexible and nuanced analysis of mortality data, accommodating country-specific complexities and uncertainties. By applying Bayesian modeling, this study aims to deepen the understanding of COVID-19's impact in Latin America and contribute to the global discussion on pandemic mortality reporting.
 
-## The Data
-First, for consistency considerations, the total mortatility counts and the official covid death counts for each country will be retrieved from The Economist's publicly available data repository on GitHub (https://github.com/TheEconomist/covid-19-excess-deaths-tracker/tree/master/output-data/historical-deaths). The original source includes "the Human Mortality Database, a collaboration between UC Berkeley and the Max Planck Institute in Germany, and the World Mortality Dataset, created by Ariel Karlinsky and Dmitry Kobak." (The Economist, 2021). We will first plot the total deaths counts against the official covid-19 death counts for each Latin America country. Note that both death counts are reported in a weekly time frame.
+### 1.1 Definition of Excess Deaths
+
+In this paper, "excess deaths" are defined as "the difference between the observed numbers of deaths in specific time periods and expected numbers of deaths in the same time periods" (CDC, 2022). This distinction is critical in the context of the COVID-19 pandemic, where attributing specific causes to deaths can be challenging. For example, some deaths due to COVID-19 may be misclassified, making all-cause mortality tracking a key indicator of potential undercounts in COVID-19 mortality (CDC, 2022).
+
+## 2. Methodology and Modelling Assumptions
+
+For simplicity and comparison purposes, I set the starting date of the COVID-19 pandemic for all countries to be on March 1st, 2020, considering the WHO's declaration of COVID-19 as a pandemic on March 11, 2020 (WHO, 2020). For each country, I then fit a baseline model of total weekly mortality counts on all the pre-COVID years and generate out-of-sample forecasts for the COVID years (starting March 1st, 2020). The rationale is that this baseline model, based on pre-COVID mortality counts, should capture seasonal patterns and trends. Using this model, excess deaths are calculated by subtracting the actual number of mortality counts in the COVID years from this historical baseline. This approach accounts for people who died from COVID-19 but whose cause of death wasn't correctly attributed to the official COVID mortality numbers for reasons previously mentioned. Finally, I compare these calculated excess deaths against the official reported COVID-19 deaths for each country.
+
+## 3. Data and Sample
+
+The total mortality counts and the official COVID-19 death counts for each country are retrieved from The Economist's publicly available data repository on GitHub (<https://github.com/TheEconomist/covid-19-excess-deaths-tracker/tree/master/output-data/historical-deaths>). The original data source includes "the Human Mortality Database, a collaboration between UC Berkeley and the Max Planck Institute in Germany, and the World Mortality Dataset, created by Ariel Karlinsky and Dmitry Kobak." (The Economist, 2021). I first plot the total deaths counts against the official covid-19 death counts for each Latin America country. Note that both death counts are reported in a weekly time frame.
 
 ```{r, fig.cap='Plot of official covid-19 vs total deaths counts for each country', fig.ncol=1, fig.height=6, fig.width=15}
-chile <- read.csv("https://raw.githubusercontent.com/TheEconomist/covid-19-excess-deaths-tracker/master/output-data/historical-deaths/chile_weekly_deaths.csv")
+# chile <- read.csv("https://raw.githubusercontent.com/TheEconomist/covid-19-excess-deaths-tracker/master/output-data/historical-deaths/chile_weekly_deaths.csv")
+# ecuador <- read.csv("https://raw.githubusercontent.com/TheEconomist/covid-19-excess-deaths-tracker/master/output-data/historical-deaths/ecuador_weekly_deaths.csv")
+# peru <- read.csv("https://raw.githubusercontent.com/TheEconomist/covid-19-excess-deaths-tracker/master/output-data/historical-deaths/peru_weekly_deaths.csv")
+# mexico <- read.csv("https://raw.githubusercontent.com/TheEconomist/covid-19-excess-deaths-tracker/master/output-data/historical-deaths/mexico_weekly_deaths.csv")
 
-ecuador <- read.csv("https://raw.githubusercontent.com/TheEconomist/covid-19-excess-deaths-tracker/master/output-data/historical-deaths/ecuador_weekly_deaths.csv")
-
-peru <- read.csv("https://raw.githubusercontent.com/TheEconomist/covid-19-excess-deaths-tracker/master/output-data/historical-deaths/peru_weekly_deaths.csv")
-
-mexico <- read.csv("https://raw.githubusercontent.com/TheEconomist/covid-19-excess-deaths-tracker/master/output-data/historical-deaths/mexico_weekly_deaths.csv")
+# offline version
+chile <- read.csv("chile_weekly_deaths.csv")
+ecuador <- read.csv("ecuador_weekly_deaths.csv")
+peru <- read.csv("peru_weekly_deaths.csv")
+mexico <- read.csv("mexico_weekly_deaths.csv")
 
 chile_plt <- chile %>% ggplot(aes(x= as.Date(start_date)) ) +
           geom_point(aes(y= total_deaths, color="total_deaths")) + 
@@ -87,12 +98,13 @@ peru_plt <- peru %>% ggplot(aes(x= as.Date(start_date)) ) +
 cowplot::plot_grid(chile_plt, ecuador_plt, mexico_plt, peru_plt)  
 ```
 
-## Modelling 
-In the original article, The Economist had first used "a five-year average of deaths in a given region to calculate a baseline for excess deaths", followed by "a statistical model for each region, which predicts the number of deaths we might normally have expected in 2020. The model  fits a linear trend to years, to adjust from long-term increases or decreases in deaths, and a fixed effect for each week or month." (The Economist, 2021)
+## 4. Bayesian Estimation of Historical Baselines and Excess Deaths
 
-However, I believe both models might lack the complexity to successfully capture the underlying pattern of the mortality data, which might not necessarily be "linear" in nature. I hypothesize that general mortality data could be further decomposed into both a seasonal/cyclical and trend component, suggesting a time-series model might be a better choice (Hyndman, 2018). Furthermore, the general death rate over the years might be increasing (non-stationary) as well, which is unrelated to covid-related factors but is rather attributed to trends such as the increasing elderly population globally (Cheng et al, 2020) or due to factors such as "drug overdoses, alcohol, suicides, and cardiometabolic condition" for the younger and middle-aged population (National Academies of Sciences, 2021).
+In the original analysis, The Economist utilized "a five-year average of deaths in a given region to calculate a baseline for excess deaths", followed by "a statistical model for each region, which predicts the number of deaths we might normally have expected in 2020. The model fits a linear trend to years, to adjust from long-term increases or decreases in deaths, and a fixed effect for each week or month" (The Economist, 2021).
 
-Hence, a Bayesian model using INLA or integrated nested Laplace approximation (Rue et al, 2009) will be fitted for each country and will be trained only using the data with dates before "2020-03-01". This will act as our historical baseline which will used to calculate the excess deaths during the pandemic. Predicted values along will their corresponding 95% credible intervals (CI) will also be generated. Finally, the actual weekly deaths will be overlayed as well. 
+However, I believe that these models may lack the necessary complexity to accurately capture the underlying patterns in mortality data. The assumption of linearity in mortality trends overlooks potential seasonal/cyclical components and non-linear trends, which could significantly influence the data (Hyndman, 2018). Additionally, general mortality trends may exhibit non-stationarity, influenced by factors unrelated to COVID-19, such as the increasing elderly population (Cheng et al., 2020) and rising mortality from drug overdoses, alcohol, suicides, and cardiometabolic conditions in younger and middle-aged populations (National Academies of Sciences, 2021).
+
+To address these limitations, I employ a Bayesian model using Integrated Nested Laplace Approximation (INLA) (Rue et al., 2009). Each country's model is be fitted using data up to "2020-03-01", serving as a historical baseline for calculating excess deaths during the pandemic. The model generates predicted values along with their corresponding 95% credible intervals (CI). Additionally, actual weekly deaths are overlaid for comparison.
 
 ```{r, fig.cap='Plot of predicted vs actual deaths', fig.ncol=1, fig.height=6, fig.width=15}
 
@@ -186,8 +198,11 @@ peru_inla_plt = peru_predicted_deaths[[2]] %>%
 cowplot::plot_grid(chile_inla_plt, ecuador_inla_plt, mexico_inla_plt, peru_inla_plt)
 ```
 
-## Sampling Predicted Deaths from the Posterior Distributions
-Next, we will sample 10 simulations from the corresponding posterior distributions for each country along with the actual deaths after accounting for the covid-19 pandemic.
+\newpage
+
+### **4.1 Sampling of Predicted Deaths from the Posterior Distributions**
+
+Subsequently, I draw 10 simulations from the posterior distributions of each country's model. These simulations reflect varied scenarios of mortality data after incorporating the impacts of the COVID-19 pandemic. This approach allows for a comprehensive analysis of the potential ranges and uncertainties in actual death counts.
 
 ```{r, fig.cap='Plot of sampled predicted vs actual deaths from 10 simulations', fig.ncol=1, fig.height=6, fig.width=15}
 sample_deaths_from_posterior <- function(res, res_bind_inla, n_sim=10){
@@ -246,8 +261,9 @@ peru_posterior_plt = sample_deaths_peru %>%
 cowplot::plot_grid(chile_posterior_plt, ecuador_posterior_plt, mexico_posterior_plt, peru_posterior_plt)
 ```
 
-## Excess Deaths vs Official COVID-19 Deaths
-Finally, we will now calculate the excess deaths by subtracting the estimated predicted deaths from the actual total deaths for each simulation. We will also overlay the official reported covid-19 deaths for each country.
+### 4.2 Calculation of Excess Deaths and Reported COVID-19 Deaths
+
+For the COVID-years (starting from March 1st, 2020), I calculate the excess deaths for each simulation by subtracting the estimated predicted deaths from the total deaths. Additionally, the official reported COVID-19 deaths for each country are overlaid on these calculations. This comparison provides a clear visualization of the discrepancy between the predicted and actual mortality figures in the context of the officially reported COVID-19 deaths.
 
 ```{r, fig.cap='Plot of sampled predicted vs official covid-19 deaths', fig.ncol=1, fig.height=6, fig.width=15}
 generate_excess_deaths_from_posterior <- function(sample_deaths){
@@ -298,50 +314,62 @@ cowplot::plot_grid(excess_deaths_chile_plt, excess_deaths_ecuador_plt,
                    excess_deaths_mexico_plt, excess_deaths_peru_plt)
 ```
 
-## Discussion
+## 5 Discussion
 
-Based on Figure 2, we can see that INLA was able to successfully capture the trend and the seasonal patterns of the pre-covid death trends and was able to generate reasonable predictions (posterior medians) using only the pre-covid data going into the pandemic. The seasonality is mainly generated by the linear combination of the 6-months and 12-months sines and cos-sines cycles specified by the parameters of `sin12 + sin6 + cos12 + cos6`. The priors chosen for both models (random walk 2 and independent/iid) are both `pc.prec` or Precision Penalized Complexity prior, which is able to "penalize departure from the base model" (Virgilio, 2020). These priors are also "invariant to reparameterisations, have a natural connection to Jeffreys' priors, are designed to support Occam's razor" (Daniel et al, 2017). The standard deviation of the prior is set to be 0.01 with a median quantile of 0.5, which denotes that the slope of the death rate can change by about 0.01 from one week to the next. Note that the scale of this prior is only an estimate as we do not know the exact death rate for each country.
+### **5.1 Evaluating Model Performance and Predictions**
 
-We can also observe that the 95% C.I. gets wider the further away our prediction gets as we are now less confident about the predictions. This is especially the case for Peru (Figure 2), as INLA has suggested a rather steep and increasing trend for death rates with a very high uncertainty as well.
+Figure 2 demonstrates that INLA effectively captured pre-pandemic death trends, including seasonal patterns. Predictions for the pandemic period, based solely on pre-COVID data, appear reasonable. Seasonality is predominantly driven by a linear combination of 6-month and 12-month sine and cosine cycles, as indicated by sin12, sin6, cos12, and cos6 parameters.
 
-On Figure 3, we generated 10 samples from the posterior distributions instead of just plotting the posterior medians and quantiles. We noticed that the samples are pretty much consistent for Chile and Ecuador, but experienced some variations for Mexico and Peru, which is also consistent to Figure 2. This suggests that perhaps we need to choose a more sensitive prior for these two countries or tune other hyperparameters to adjust for a better model fit.
+### **5.2 Model Priors and Implications**
 
-Finally on Figure 4, we have subtracted the predicted deaths from total deaths to generate the "excess deaths" for each simulation and also plotted the official covid-19 death counts from each country. Theoretically, we should be able to observe that the official reported covid-19 death counts to be the same as the excess deaths we calculated, which would mean that the majority of the cause of deaths during the pandemic period have all been caused by and attributed to the virus. However, this happens to be only the case of Chile. For Ecuador and Mexico, we can observe our estimated excess deaths have all been higher than the official reported covid death counts. Finally for Peru, the estimated excess death counts are actually lower than that of the official covid death count, which suggests that our historical baseline model is under-fitting leading to our excess deaths counts to be extremely noisy with a large variance.
+The selected pc.prec priors (Precision Penalized Complexity prior) for both random walk 2 and independent/iid models effectively penalize deviations from the base model, supporting Occam's razor and invariant to reparameterizations (Virgilio, 2020; Daniel et al., 2017). With a standard deviation of 0.01 and a median quantile of 0.5, these priors suggest a possible weekly change of 0.01 in death rates, though this is an estimate due to varying death rates across countries.
 
-## Conclusion
+The widening of the 95% C.I. in predictions over time, particularly for Peru, indicates increasing uncertainty. This is further evidenced by Figure 3's posterior distribution samples, revealing consistent results for Chile and Ecuador but variations for Mexico and Peru, suggesting the need for more sensitive priors or hyperparameter adjustments for these countries.
 
-In conclusion, we don't have much evidence that the Latin America region had a much lower official reported covid-19 deaths compared to the estimated excess deaths. Out of the four chosen countries (Chile, Ecuador, Mexico, and Peru), there is only evidence that Ecuador and Mexico has estimated excess deaths to be greater than the reported covid-19 deaths. Chile, on the other hand, has excess deaths to be more or less the same as its reported covid deaths. These results are also consistent with the Economist's article (The Economist, 2021) which uses a linear fixed effects model. Finally, our model has not fitted the Peru data well, resulting in an inconclusive result. 
+### **5.3 Comparing Excess Deaths with Official COVID-19 Deaths**
 
-Some potential limitations include the four countries chosen randomly as a representation for the Latin American region which could introduce some selection biases. Furthermore, one could also argue that each country should really be treated as independent samples and the regional fixed effect might not exist at all whereas factors such as GDP per capita, health infrastructure scores, or corruption indices might be more useful indicators rather than just subsetting by region. This could also be an area for exploration as next steps. 
+In Figure 4, the calculated excess deaths, obtained by subtracting predicted deaths from actual deaths, are compared with official COVID-19 death counts. While Chile's data aligns, indicating that excess deaths correspond with reported COVID-19 deaths, Ecuador and Mexico show higher excess deaths than reported. Conversely, Peru presents an underfitting model with lower estimated excess deaths than official counts, implying significant noise and variance in the data.
 
-Finally, future recommendations could include a more clever and stronger choice of informative priors (based on domain knowledge or prior researches) or the better tuning of the other hyper-parameters which could avoid underfitting and the highly volatile results of the Peru dataset. Other models and methods such as GAMs or time series models such as ARIMA or exponential smoothing could also be explored for comparison purposes. It would also be worthwhile to compare the results of calculated excess deaths vs reported covid deaths for OECD countries such as Canada as a baseline for comparison. 
+## **6 Conclusion**
+
+### **6.1 Summary of Findings**
+
+In this study, I find mixed evidence regarding the discrepancy between official COVID-19 death counts and estimated excess deaths in Latin America. Among the four countries analyzed (Chile, Ecuador, Mexico, and Peru), only Ecuador and Mexico displayed significant disparities, with excess deaths exceeding reported COVID-19 fatalities. Chile's data showed parity between excess and reported deaths. These findings align with those of The Economist (2021), which employed a linear fixed effects model. However, the model's performance on Peru's data was suboptimal, yielding inconclusive results.
+
+### **6.2 Acknowledging Limitations and Recommendations for Future Research**
+
+A primary limitation of this study lies in not treating each Latin American country as an independent entity, each with its distinct epidemiological and socio-economic context. Future research could be enhanced by incorporating country-specific Bayesian priors, reflecting factors such as GDP per capita, healthcare infrastructure quality, and corruption indices. This would improve the model's predictive accuracy and offer a nuanced analysis beyond broad regional generalizations.
+
+Additionally, exploring alternative modeling approaches, such as Generalized Additive Models (GAMs), ARIMA, or exponential smoothing, could yield valuable comparative insights. Comparing the model's findings on excess deaths with reported COVID-19 deaths in OECD countries like the U.S. and Canada might also serve as a useful benchmark for evaluating the model's accuracy and generalizability.
 
 \newpage
 
 ## References
-- CDC, Centers for Disease Control and Prevention (2022) *Excess Deaths Associated with COVID-19*. Retrieved: https://www.cdc.gov/nchs/nvss/vsrr/covid19/excess_deaths.htm#references
 
-- Cheng X, Yang Y, Schwebel DC, Liu Z, Li L, Cheng P, et al. (2020) *Population ageing and mortality during 1990–2017: A global decomposition analysis*. PLoS Med 17(6): e1003138. https://doi.org/10.1371/journal.pmed.1003138
+-   CDC, Centers for Disease Control and Prevention (2022) *Excess Deaths Associated with COVID-19*. Retrieved: <https://www.cdc.gov/nchs/nvss/vsrr/covid19/excess_deaths.htm#references>
 
-- Daniel Simpson, Håvard Rue, Andrea Riebler, Thiago G. Martins, Sigrunn H. Sørbye. "Penalising Model
-Component Complexity: A Principled, Practical Approach to Constructing Priors." Statistical Science, 32(1)
-1-28 February 2017. https://doi.org/10.1214/16-STS576
+-   Cheng X, Yang Y, Schwebel DC, Liu Z, Li L, Cheng P, et al. (2020) *Population ageing and mortality during 1990--2017: A global decomposition analysis*. PLoS Med 17(6): e1003138. <https://doi.org/10.1371/journal.pmed.1003138>
 
-- Hyndman, R. J., & Athanasopoulos, G. (2018). *Forecasting: Principles and Practice.* (2nd ed.) OTexts. https://otexts.org/fpp2/
+-   Daniel Simpson, Håvard Rue, Andrea Riebler, Thiago G. Martins, Sigrunn H. Sørbye. "Penalising Model Component Complexity: A Principled, Practical Approach to Constructing Priors." Statistical Science, 32(1) 1-28 February 2017. <https://doi.org/10.1214/16-STS576>
 
-- National Academies of Sciences, Engineering, and Medicine. 2021. *High and Rising Mortality Rates Among Working-Age Adults.* Washington, DC: The National Academies Press.https://doi.org/10.17226/25976.
+-   Hyndman, R. J., & Athanasopoulos, G. (2018). *Forecasting: Principles and Practice.* (2nd ed.) OTexts. <https://otexts.org/fpp2/>
 
-- H. Rue, S. Martino, and N. Chopin. *Approximate Bayesian inference for latent Gaussian models using integrated nested Laplace approximations (with discussion). Journal of the Royal Statistical Society, Series B, 71(2):319{392, 2009*. 
+-   National Academies of Sciences, Engineering, and Medicine. (2021). *High and Rising Mortality Rates Among Working-Age Adults.* Washington, DC: The National Academies Press.https://doi.org/10.17226/25976.
 
-- The Economist (2021) *Tracking covid-19 excess deaths across countries.* Retrieved: https://www.economist.com/graphic-detail/coronavirus-excess-deaths-tracker
+-   H. Rue, S. Martino, and N. Chopin. *Approximate Bayesian inference for latent Gaussian models using integrated nested Laplace approximations (with discussion). Journal of the Royal Statistical Society, Series B, 71(2):319{392, 2009*.
 
-- Gómez-Rubio, Virgilio (2020). Bayesian Inference with INLA. Chapman & Hall/CRC Press. Boca Raton, FL. Retrieved: https://becarioprecario.bitbucket.io/inla-gitbook/index.html
+-   Litewka, S. G., & Heitman, E. (2020). *Latin American healthcare systems in times of pandemic. Developing world bioethics, 20(2), 69--73*. <https://doi.org/10.1111/dewb.12262>
 
-- WHO (2020) *WHO Timeline - COVID-19*. Retrieved: https://www.who.int/news/item/27-04-2020-who-timeline---covid-19
+-   The Economist (2021) *Tracking covid-19 excess deaths across countries.* Retrieved: <https://www.economist.com/graphic-detail/coronavirus-excess-deaths-tracker>
+
+-   Gómez-Rubio, Virgilio (2020). Bayesian Inference with INLA. Chapman & Hall/CRC Press. Boca Raton, FL. Retrieved: <https://becarioprecario.bitbucket.io/inla-gitbook/index.html>
+
+-   WHO (2020) *WHO Timeline - COVID-19*. Retrieved: <https://www.who.int/news/item/27-04-2020-who-timeline---covid-19>
 
 \newpage
 
 ## Appendix
+
 ```{r, eval=FALSE, warning=FALSE, echo=TRUE, results='hide'}
 # importing libraries
 library(tidyverse)
@@ -566,18 +594,3 @@ excess_deaths_peru_plt = excess_deaths_peru %>%
 cowplot::plot_grid(excess_deaths_chile_plt, excess_deaths_ecuador_plt,
                    excess_deaths_mexico_plt, excess_deaths_peru_plt)
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
